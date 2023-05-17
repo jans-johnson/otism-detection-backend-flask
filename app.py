@@ -1,6 +1,7 @@
 import pickle
 import pandas as pd
 from flask import Flask, request, jsonify
+import json
 
 logistic = pickle.load(open('logistic.sav', 'rb'))
 adaboost = pickle.load(open('adaboost.sav', 'rb'))
@@ -13,25 +14,26 @@ app = Flask(__name__)
 @app.route('/predict', methods=['POST'])
 def predict():
     # Retrieve the data from the POST request
+    lst=[]
     data = request.json
+    json_str = json.dumps(data)
+    data = json.loads(json_str)
+    for value in data.values():
+        lst.append(value)
+    lst=[lst]
+    # # Make predictions using your model
+    predictions = make_predictions(lst)
 
-    # Perform any necessary data processing or transformations
-    # ...
-
-    # Make predictions using your model
-    predictions = make_predictions(data)
-
-    # Prepare the response
+    # # Prepare the response
     response = {
         'predictions': predictions
     }
-
     # Return the response as JSON
     return jsonify(response)
 
 def make_predictions(data):
     columns = ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'Age_Mons', 'Sex', 'Ethnicity', 'Jaundice', 'Family_mem_with_ASD', 'Who_completed_the_test']
-    data=[[1,1,0,0,0,1,1,0,0,0,36,1,'White European',1,0,'family member']]
+    #data=[[1,1,0,0,0,1,1,0,0,0,36,1,'White European',1,0,'family member']]
     # Create the DataFrame
     dataset = pd.DataFrame(data, columns=columns)
 
@@ -127,7 +129,21 @@ def make_predictions(data):
     dataset['months12_24'] = dataset['Age_Mons'].apply(lambda x: 0 if x > 24 else 1)
     dataset['months24_36'] = dataset['Age_Mons'].apply(lambda x: 0 if x < 24 else 1)
     dataset.drop(['Age_Mons'], axis=1, inplace=True)
-    return [logistic.predict(dataset),adaboost.predict(dataset),lgbm.predict(dataset),mlp.predict(dataset),grad.predict(dataset)]
+    return find_most_repeated_element[logistic.predict(dataset),adaboost.predict(dataset),lgbm.predict(dataset),mlp.predict(dataset),grad.predict(dataset)]
+
+def find_most_repeated_element(lst):
+    count = {0: 0, 1: 0}
+
+    for num in lst:
+        count[num] += 1
+
+    if count[0] == count[1]:
+        return 1
+    elif count[0] > count[1]:
+        return 0
+    else:
+        return 1
+
 
 if __name__ == '__main__':
     app.run(debug=True)
